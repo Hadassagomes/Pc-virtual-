@@ -1,4 +1,4 @@
-name: PC Virtual (RDP)
+: PC Virtual (RDP)
 
 on:
   workflow_dispatch:
