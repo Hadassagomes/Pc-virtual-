@@ -1,0 +1,45 @@
+name: PC Virtual (RDP)
+
+on:
+  workflow_dispatch:
+    inputs:
+      authcode:
+        description: 'Cole aqui o código de autorização do Chrome Remote Desktop'
+        required: true
+      pin:
+        description: 'Crie um PIN de 6 dígitos para acessar'
+        required: true
+        default: '123456'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Baixando e instalando o Chrome Remote Desktop
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        
+    - name: Configurando o Chrome Remote Desktop
+      run: |
+        $authcode = "${{ github.event.inputs.authcode }}"
+        $pin = "${{ github.event.inputs.pin }}"
+        
+        # Download do instalador do Chrome Remote Desktop
+        Invoke-WebRequest -Uri https://dl.google.com/remotedesktop/chromeremotedesktophost.msi -OutFile chromeremotedesktophost.msi
+        Start-Process msiexec.exe -ArgumentList '/i chromeremotedesktophost.msi /quiet' -NoNewWindow -Wait
+        
+        # Executa o comando de autorização recebido
+        & "C:\Program Files (x86)\Google\Chrome Remote Desktop\CurrentVersion\remotedesktop_host.exe" --start --code="$authcode" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin=$pin
+
+    - name: Manter a Máquina Virtual Ativa
+      run: |
+        Write-Host "PC Virtual rodando com sucesso!"
+        $i = 0
+        while ($i -lt 360) {
+            Start-Sleep -Seconds 60
+            $i++
+            Write-Host "Tempo ativo: $i minutos..."
+        }
