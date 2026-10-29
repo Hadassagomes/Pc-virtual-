@@ -1,4 +1,4 @@
-name: PC criado pelo @alves7.pcm
+name: PC criado por @alves7.pcm
 
 on:
   workflow_dispatch:
@@ -7,21 +7,35 @@ on:
         description: 'Instance Number (1-10)'
         required: true
         default: '1'
+      tailscale_key:
+        description: 'Chave Auth Key do Tailscale'
+        required: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
-    - name: Iniciando o PC Virtual
+    - name: Baixando e Instalando Tailscale no Windows
       run: |
-        echo "Iniciando a instancia ${{ github.event.inputs.instance }}..."
-        
-    - name: Manter ativo
+        Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale.exe"
+        Start-Process -FilePath "tailscale.exe" -ArgumentList "/quiet" -Wait
+
+    - name: Conectando a maquina virtual ao seu Tailscale
       run: |
-        i=0
-        while [ $i -lt 360 ]; do
-            sleep 60
-            i=$((i+1))
-            echo "Instancia rodando há $i minutos..."
-        done
+        & "C:\Program Files\Tailscale\tailscale.exe" up --authkey="${{ github.event.inputs.tailscale_key }}"
+
+    - name: Habilitando Area de Trabalho Remota (RDP)
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Manter Windows Ativo
+      run: |
+        Write-Host "Windows Virtual conectado ao Tailscale com sucesso!"
+        $i = 0
+        while ($i -lt 360) {
+            Start-Sleep -Seconds 60
+            $i++
+            Write-Host "PC Ativo ha $i minutos..."
+        }
